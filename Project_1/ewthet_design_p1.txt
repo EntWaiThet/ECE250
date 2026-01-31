@@ -1,0 +1,30 @@
+CLASS DESIGN
+
+This project implements a command-driven program that operates on a single current time series. Commands are read from standard input (stdin) and outputs are written to standard output (stdout) exactly as specified for automated testing.
+The main data structure is the TimeSeries class that stores a set of (year, value) pairs and supports instructed commands such as Loading from CSV (LOAD_P1), Printing stored pairs (PRINT_P1), Inserting new points (ADD_P1) and etc.
+For data representation, dynamic arrays are used. And, the arrays are kept sorted by year in ascending order. As the class has raw dynamic arrays, destructors are created to clear the arrays such as years_ and data_. 
+Copy constructors are created to deep copy arrays and copy assignment operators are also used for deep-copies with self-assignment protection. These ensure the correct behavior when the object is copied.
+Search and insert helper functions such as find_year_index(year) and insertion_index(year) are also used.
+In the main program (main.cpp), the main program keeps a single “current” series which is std::unique_ptr<TimeSeries> ts;. Before a series is loaded or created, ts may be nullptr.
+LOAD_P1 command replaces the current series with a new one (ts = make_unique<TimeSeries>()). Here, make_unique<> was used instead of new operator for cleaner syntax and no memory leak.
+And, finally, all subsequent commands act on the current series referenced by ts until the next LOAD_P1.
+
+
+ALTERNATIVES AND JUSTIFICATION
+
+This design chooses to ignore the missing values and not to store them in arrays. Doing this simplify other computations such as mean, monotonicity, fit, because
+size_ represents the count of valid points only. It also avoids storing values which are going to be needed to be filtered out here. The alternative here was to store the missing values but exclude them
+from computations. It wasn't chosen because it would require an additional “valid” array or even extra checks in every computation. It also increases the chances of bugs and the code complexity.
+Also, when representing a data point, parallel arrays (years_ and data_) are used. This is because it's simple and direct mapping from year to value and sorting by year is straightforward. 
+It also matches how the project’s required outputs naturally view data (year,value).
+The alternative was to use struct such as pair in a small struct (e.g., struct Point { int year; double value; };) and store a dynamic array of such structs as it encapsulates the relationship between year/value more cleanly.
+However, it does not reduce the need for dynamic memory management or resizing. This design was not used in order to keep the implementation simpler.
+
+RUNTIME ANALYSIS
+
+Let n be the number of stored data points.
+LOAD_P1: Worst-case O(n^2) due to repeated insertions with shifting, though typical CSV data arrives in sorted order, making performance closer to linear.
+PRINT_P1, MEAN_P1, MONOTONIC_P1, FIT_P1: Each of these commands performs a single pass over the stored data. During each iteration, only constant-time operations occur (such as array access, arithmetic, or comparisons). Because each loop executes at most 
+n iterations with  𝑂(1)  work per iteration, the runtime for each command is O(n).
+ADD_P1, UPDATE_P1: Each operation requires linear search and possible shifting, yielding O(n).
+Space complexity: The data is stored in dynamically allocated arrays whose capacity grows by a constant factor when resized.  As a result, the total allocated memory remains proportional to the number of stored elements, yielding a space complexity of  O(n).
